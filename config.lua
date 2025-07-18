@@ -1,0 +1,43 @@
+local config = {}
+
+-- Map/Tile
+config.TILE_SIZE = 32
+
+-- Player
+config.PLAYER_SIZE = 32
+config.PLAYER_SPEED_RAMP = 200
+config.PLAYER_ACCEL = 300
+config.PLAYER_FRICTION = 260
+
+-- Attacks
+config.ATTACK_DURATION = 0.15
+config.ATTACK_COOLDOWN = 0.4
+config.ALT_ATTACK_DURATION = 0.15
+config.ALT_ATTACK_COOLDOWN = 0.4
+config.ALT_ATTACK_MAX_CHARGE = 2.0
+config.CHARGE_PER_TIER = 0.7
+
+-- Enemy
+config.ENEMY_DEFEAT_EFFECT_DURATION = 0.28
+config.ENEMY_RECOVERY_DURATION = 0.15
+config.ENEMY_KNOCKBACK_BASE = 220
+config.ENEMY_KNOCKBACK_DURATION_BASE = 0.18
+config.ENEMY_KNOCKBACK_DURATION_PER_TIER = 0.08
+config.ENEMY_DEFEAT_VFX_EXPAND = 64
+config.ENEMY_DEFEAT_VFX_OSC = 16
+config.ENEMY_DEFEAT_FLASH_THRESHOLD = 0.12
+
+-- Player Hit Flash
+config.PLAYER_HIT_FLASH_RADIUS = 24
+config.PLAYER_HIT_FLASH_DURATION = 0.15
+
+-- UI
+config.UI_METER_X = 32
+config.UI_METER_Y = 24
+config.UI_PIP_SIZE = 22
+config.UI_PIP_SPACING = 32
+config.UI_FONT_SIZE = 16
+config.UI_DEBUG_Y_START = 8
+config.UI_DEBUG_Y_STEP = 18
+
+return config 

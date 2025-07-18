@@ -1,0 +1,5 @@
+enemy.lua loaded
+class: table: 0x020f782e9aa0
+Enemy: class Enemy
+About to create Enemy instances
+Error creating Enemy instances: enemy.lua:203: attempt to call method 'new' (a nil value)
