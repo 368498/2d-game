@@ -3,32 +3,10 @@ local utils = require 'utils'
 
 local enemy = {}
 
-local ENEMY_SPEED_TIERS = {
-    {name = 'slowed', value = 60, color = {0.5, 1, 0.5}},
-    {name = 'normal', value = 120, color = {1, 1, 1}},
-    {name = 'fast', value = 200, color = {0.2, 0.8, 1}},
-    {name = 'superfast', value = 320, color = {1, 0.2, 1}}
-}
-
-enemy.ENEMY_SPEED_TIERS = ENEMY_SPEED_TIERS
-
 enemy.enemies = {}
 
-local function getNearestEnemySpeedTier(val)
-    local best, bestDist = ENEMY_SPEED_TIERS[1], math.abs(val - ENEMY_SPEED_TIERS[1].value)
-    for _, tier in ipairs(ENEMY_SPEED_TIERS) do
-        local dist = math.abs(val - tier.value)
-        if dist < bestDist then
-            best, bestDist = tier, dist
-        end
-    end
-    return best
-end
-
-enemy.getNearestEnemySpeedTier = getNearestEnemySpeedTier
-
 function enemy.initAll(map)
-    local enemyStartTier = ENEMY_SPEED_TIERS[2] -- 'normal' tier
+    local enemyStartTier = config.ENEMY_SPEED_TIERS[2] 
     enemy.enemies = {
         {
             x = 2 * config.TILE_SIZE, y = 2 * config.TILE_SIZE,
@@ -74,12 +52,16 @@ end
 
 function enemy.updateAll(dt, map, tilemap)
     for i, e in ipairs(enemy.enemies) do
+
         if e.defeated then goto continue_enemy end
+        
         if e.knockbackTimer and e.knockbackTimer > 0 then
+            -- Knocked Back Enemy Movement
             local nextX = e.x + e.knockbackVx * dt
             local nextY = e.y + e.knockbackVy * dt
             local es = e.size
             local hitWall = false
+
             for _, corner in ipairs({
                 {nextX, nextY},
                 {nextX + es - 1, nextY},
@@ -97,11 +79,15 @@ function enemy.updateAll(dt, map, tilemap)
                     break
                 end
             end
+
+            -- Defeat by hitting wall in knockback state
             if hitWall then
                 e.defeated = true
                 e.defeatEffectTimer = 0.28
                 goto continue_enemy
             end
+
+            -- Defeat by hitting another enemy in knockback state
             for j, other in ipairs(enemy.enemies) do
                 if other ~= e and not other.defeated then
                     local overlap = not (nextX + es < other.x or nextX > other.x + other.size or nextY + es < other.y or nextY > other.y + other.size)
@@ -111,9 +97,11 @@ function enemy.updateAll(dt, map, tilemap)
                     end
                 end
             end
+
             e.x = nextX
             e.y = nextY
             e.knockbackTimer = e.knockbackTimer - dt
+
             if e.knockbackTimer <= 0 then
                 e.knockbackVx = 0
                 e.knockbackVy = 0
@@ -125,7 +113,9 @@ function enemy.updateAll(dt, map, tilemap)
                 local dir = (e.vx >= 0) and 1 or -1
                 e._recoveryTargetVx = dir * (e.speedTier and e.speedTier.value or 120)
             end
+
         elseif e.recoveryTimer and e.recoveryTimer > 0 then
+            -- Enemy attack recovery window
             local total = 0.15
             local elapsed = (e._recoveryElapsed or 0) + dt
             e._recoveryElapsed = elapsed
@@ -133,13 +123,16 @@ function enemy.updateAll(dt, map, tilemap)
             e.vx = (e._recoveryTargetVx or 0) * t
             e.vy = 0
             e.recoveryTimer = e.recoveryTimer - dt
+
             if e.recoveryTimer <= 0 then
                 e.vx = e._recoveryTargetVx or 0
                 e.vy = 0
                 e._recoveryElapsed = nil
                 e._recoveryTargetVx = nil
             end
+
         else
+            -- Normal enemy movement
             if e.targetVx then
                 if math.abs(e.vx - e.targetVx) < 1 then
                     e.vx = e.targetVx
@@ -180,27 +173,30 @@ end
 function enemy.drawAll()
     for i, e in ipairs(enemy.enemies) do
         if e.defeated then goto continue_draw_enemy end
+
+        --Enemy outline is affected by current speed
         love.graphics.setColor(e.speedTier and e.speedTier.color or {1,1,1})
         local half = e.size / 2
         love.graphics.setLineWidth(6)
         love.graphics.polygon('line',
-            e.x + half, e.y, -- top
-            e.x + e.size, e.y + half, -- right
-            e.x + half, e.y + e.size, -- bottom
-            e.x, e.y + half -- left
+            e.x + half, e.y, 
+            e.x + e.size, e.y + half, 
+            e.x + half, e.y + e.size, 
+            e.x, e.y + half 
         )
         love.graphics.setColor(0, 0.7, 1)
         love.graphics.polygon('fill',
-            e.x + half, e.y, -- top
-            e.x + e.size, e.y + half, -- right
-            e.x + half, e.y + e.size, -- bottom
-            e.x, e.y + half -- left
+            e.x + half, e.y,
+            e.x + e.size, e.y + half,
+            e.x + half, e.y + e.size, 
+            e.x, e.y + half 
         )
         love.graphics.setLineWidth(1)
         love.graphics.setColor(1, 1, 1)
         ::continue_draw_enemy::
     end
     for _, e in ipairs(enemy.enemies) do
+        -- Enemy death VFX
         if e.defeatEffectTimer and e.defeatEffectTimer > 0 then
             local half = e.size / 2
             local cx = e.x + half
