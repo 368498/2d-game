@@ -6,19 +6,17 @@ local config = require 'config'
 local map = require 'map'
 local utils = require 'utils'
 
-
-
-function love.load()
-    player.load()
-    map.init(30, 22, config.TILE_SIZE)
-    enemy.initAll(map)
+-- helper functions
+local function getCurrentTierIndex()
+    for i, tier in ipairs(config.SPEED_TIERS) do
+        if player.speedTier and player.speedTier.name == tier.name then
+            return i
+        end
+    end
+    return 1
 end
 
-function love.update(dt)
-    enemy.updateAll(dt, map, map.getTilemap())
-    player.update(dt, map, map.getTilemap(), enemy.getAll())
-
-    -- Player-enemy collision
+local function handlePlayerEnemyCollision()
     local px, py, ps = player.x, player.y, player.size
     for i, e in ipairs(enemy.getAll()) do
         local ex, ey, es = e.x, e.y, e.size
@@ -51,26 +49,21 @@ function love.update(dt)
             end
         end
     end
+end
 
-    -- Charge the altAttack 
+local function updateAltAttack(dt)
     if player.altAttack.charging then
         player.altAttack.charge = math.min(player.altAttack.charge + dt, player.altAttack.maxCharge)
     end
+end
 
-    -- Self-charge
+local function updateSelfCharge(dt)
     local isTakeHeld = love.keyboard.isDown('space')
     local isMoving = math.abs(player.vx) > 0.1 or math.abs(player.vy) > 0.1
     local maxTier = #config.SPEED_TIERS
-    local currentTierIdx = 1
-    for i, tier in ipairs(config.SPEED_TIERS) do
-        if player.speedTier and player.speedTier.name == tier.name then
-            currentTierIdx = i
-            break
-        end
-    end
-
-    -- Charge durations
+    local currentTierIdx = getCurrentTierIndex()
     local chargeDuration = config.CHARGE_DURATIONS[currentTierIdx] or 1.0
+    
     if isTakeHeld and not isMoving and player.selfChargeCooldown <= 0 and player.selfChargeReady and currentTierIdx < maxTier and not player.attack.active and player.attack.cooldownTimer == 0 then
         if not player.selfChargeActive then
             player.selfChargeActive = true
@@ -78,8 +71,7 @@ function love.update(dt)
         end
         player.selfChargeTimer = player.selfChargeTimer + dt
         if player.selfChargeTimer >= chargeDuration then
-
-            local nextTier = config.SPEED_TIERS[currentTierIdx + 1]            -- Gain tier
+            local nextTier = config.SPEED_TIERS[currentTierIdx + 1]
             player.targetSpeed = nextTier.value
             player.selfChargeActive = false
             player.selfChargeTimer = 0
@@ -93,10 +85,73 @@ function love.update(dt)
             player.selfChargeReady = true
         end
     end
+    
     if player.selfChargeCooldown > 0 then
         player.selfChargeCooldown = player.selfChargeCooldown - dt
         if player.selfChargeCooldown < 0 then player.selfChargeCooldown = 0 end
     end
+end
+
+local function drawTilemap()
+    for y = 1, map.height do
+        for x = 1, map.width do
+            if map.getTilemap()[y][x] == 1 then
+                love.graphics.setColor(0.12, 0.12, 0.14, 1)
+                love.graphics.rectangle('fill', (x-1)*map.tileSize, (y-1)*map.tileSize, map.tileSize, map.tileSize)
+                love.graphics.setColor(0.3, 0.3, 0.35, 1)
+                love.graphics.rectangle('line', (x-1)*map.tileSize, (y-1)*map.tileSize, map.tileSize, map.tileSize)
+            end
+        end
+    end
+end
+
+local function drawHitFlash()
+    if player.hitFlash.active then
+        love.graphics.setColor(1, 1, 0, 0.7)
+        love.graphics.circle('fill', player.hitFlash.x, player.hitFlash.y, 24 * player.hitFlash.timer / 0.15)
+        love.graphics.setColor(1, 1, 1)
+    end
+end
+
+
+local function drawSelfChargeVFX()
+    local maxTier = #config.SPEED_TIERS
+    local currentTierIdx = getCurrentTierIndex()
+    local chargeDuration = config.CHARGE_DURATIONS[currentTierIdx] or 1.0
+    
+    if player.selfChargeActive and currentTierIdx < maxTier then
+        local px, py, ps = player.x, player.y, player.size
+        local cx, cy = px + ps / 2, py + ps / 2
+        local pct = player.selfChargeTimer / (chargeDuration or 1.0)
+        if pct > 1 then pct = 1 end
+        local startRadius = ps * 13.2
+        local endRadius = ps * 0.2
+        local startOpacity = 0
+        local endOpacity = 0.001
+        local radius = startRadius - (startRadius - endRadius) * pct
+        local opacity = startOpacity + (endOpacity - startOpacity) * pct
+        if radius < endRadius then radius = endRadius end
+        love.graphics.setColor(1, 1, 1, opacity)
+        love.graphics.setLineWidth(3)
+        love.graphics.circle('line', cx, cy, radius)
+        love.graphics.setLineWidth(1)
+        love.graphics.setColor(1, 1, 1, 1)
+    end
+end
+
+function love.load()
+    player.load()
+    map.init(30, 22, config.TILE_SIZE)
+    enemy.initAll(map)
+end
+
+function love.update(dt)
+    enemy.updateAll(dt, map, map.getTilemap())
+    player.update(dt, map, map.getTilemap(), enemy.getAll())
+
+    handlePlayerEnemyCollision()
+    updateAltAttack(dt)
+    updateSelfCharge(dt)
 end
 
 function love.keypressed(key)
@@ -116,57 +171,14 @@ function love.mousereleased(x, y, button, istouch, presses)
 end
 
 function love.draw()
-    --  background color
+    -- background color
     love.graphics.clear(0.09, 0.09, 0.13, 1) 
 
-    -- Draw tilemap 
-    for y = 1, map.height do
-        for x = 1, map.width do
-            if map.getTilemap()[y][x] == 1 then
-                love.graphics.setColor(0.12, 0.12, 0.14, 1)
-                love.graphics.rectangle('fill', (x-1)*map.tileSize, (y-1)*map.tileSize, map.tileSize, map.tileSize)
-                love.graphics.setColor(0.3, 0.3, 0.35, 1)
-                love.graphics.rectangle('line', (x-1)*map.tileSize, (y-1)*map.tileSize, map.tileSize, map.tileSize)
-            end
-        end
-    end
+    drawTilemap()
     love.graphics.setColor(1, 1, 1, 1)
     player.draw()
     enemy.drawAll()
-    -- Draw hit flash if active
-    if player.hitFlash.active then
-        love.graphics.setColor(1, 1, 0, 0.7)
-        love.graphics.circle('fill', player.hitFlash.x, player.hitFlash.y, 24 * player.hitFlash.timer / 0.15)
-        love.graphics.setColor(1, 1, 1)
-    end
-    -- Self-charge VFX
-    local maxTier = #config.SPEED_TIERS
-    local currentTierIdx = 1
-    for i, tier in ipairs(config.SPEED_TIERS) do
-        if player.speedTier and player.speedTier.name == tier.name then
-            currentTierIdx = i
-            break
-        end
-    end
-    -- Self Charge duration by tier
-    local chargeDuration = config.CHARGE_DURATIONS[currentTierIdx] or 1.0
-    if player.selfChargeActive and currentTierIdx < maxTier then
-        local px, py, ps = player.x, player.y, player.size
-        local cx, cy = px + ps / 2, py + ps / 2
-        local pct = player.selfChargeTimer / (chargeDuration or 1.0)
-        if pct > 1 then pct = 1 end
-        local startRadius = ps * 13.2
-        local endRadius = ps * 0.2
-        local startOpacity = 0
-        local endOpacity = 0.001
-        local radius = startRadius - (startRadius - endRadius) * pct
-        local opacity 
-        if radius < endRadius then radius = endRadius end
-        love.graphics.setColor(1, 1, 1, opacity)
-        love.graphics.setLineWidth(3)
-        love.graphics.circle('line', cx, cy, radius)
-        love.graphics.setLineWidth(1)
-        love.graphics.setColor(1, 1, 1, 1)
-    end
+    drawHitFlash()
+    drawSelfChargeVFX()
     ui.draw(player, enemy)
 end
