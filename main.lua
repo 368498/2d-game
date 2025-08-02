@@ -41,7 +41,7 @@ local function handlePlayerEnemyCollision()
                 player.y = ey + es
             end
             
-            -- zero out velocity in the direction of push
+            -- zero out velocity in push direction        
             if minOverlap == overlapLeft or minOverlap == overlapRight then
                 player.vx = 0
             else
@@ -127,12 +127,12 @@ local function drawSelfChargeVFX()
         local startRadius = ps * 13.2
         local endRadius = ps * 0.2
         local startOpacity = 0
-        local endOpacity = 0.001
+        local endOpacity = 0.8
         local radius = startRadius - (startRadius - endRadius) * pct
-        local opacity = startOpacity + (endOpacity - startOpacity) * pct
+        local opacity = startOpacity + (endOpacity + startOpacity) * pct
         if radius < endRadius then radius = endRadius end
         love.graphics.setColor(1, 1, 1, opacity)
-        love.graphics.setLineWidth(3)
+        love.graphics.setLineWidth(2)
         love.graphics.circle('line', cx, cy, radius)
         love.graphics.setLineWidth(1)
         love.graphics.setColor(1, 1, 1, 1)
