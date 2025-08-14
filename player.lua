@@ -419,24 +419,39 @@ function player.draw()
             -- Calculate angle from aim direction for visual effects
             local angle = math.atan2(player.aimDirection.y, player.aimDirection.x) + math.pi/2
             
-            local attackLength = ps
-            local attackWidth = ps * 0.8
+            --VFX tuning by  tier
+            local tierName = (player.speedTier and player.speedTier.name) or 'normal'
+            local sizeMul, alphaMul, pulseMul
+            if tierName == 'slowed' then
+                sizeMul, alphaMul, pulseMul = 0.9, 0.9, 0.9
+            elseif tierName == 'fast' then
+                sizeMul, alphaMul, pulseMul = 1.15, 1.1, 1.1
+            elseif tierName == 'superfast' then
+                sizeMul, alphaMul, pulseMul = 1.3, 1.2, 1.25
+            else -- normal
+                sizeMul, alphaMul, pulseMul = 1.0, 1.0, 1.0
+            end
+            
+            local attackLength = ps * (1.0 * sizeMul)
+            local attackWidth = ps * (0.8 * sizeMul)
             love.graphics.push()
             love.graphics.translate(cx, cy)
             love.graphics.rotate(angle)
             if atk.type == 'steal' then
-                love.graphics.setColor(1, 1, 1, 0.3)
-                for i = 1, 3 do
+                local baseAlpha = 0.26 * alphaMul
+                love.graphics.setColor(1, 1, 1, baseAlpha)
+                local passes = tierName == 'superfast' and 4 or (tierName == 'fast' and 3 or 2)
+                for i = 1, passes do
                     love.graphics.rectangle('fill', -attackWidth/2 - i, -ps/2 - attackLength - i, attackWidth + 2*i, attackLength + 2*i)
                 end
-                love.graphics.setColor(1, 1, 1)
+                love.graphics.setColor(1, 1, 1, math.min(1, 0.85 * alphaMul))
                 love.graphics.rectangle('fill', -attackWidth/2, -ps/2 - attackLength, attackWidth, attackLength)
             else
                 local t = love.timer.getTime()
-                local pulse = 0.2 * math.sin(t * 10)
-                love.graphics.setColor(1, 0.5 + 0.2 * math.sin(t * 8), 0, 0.7)
+                local pulse = (0.2 * sizeMul) * math.sin(t * (10 * pulseMul))
+                love.graphics.setColor(1, 0.5 + 0.2 * math.sin(t * (8 * pulseMul)), 0, math.min(1, 0.7 * alphaMul))
                 love.graphics.rectangle('fill', -attackWidth/2 - pulse, -ps/2 - attackLength - pulse, attackWidth + 2*pulse, attackLength + 2*pulse, 12, 12)
-                love.graphics.setColor(1, 0.5, 0)
+                love.graphics.setColor(1, 0.5, 0, math.min(1, 0.95 * alphaMul))
                 love.graphics.rectangle('fill', -attackWidth/2, -ps/2 - attackLength, attackWidth, attackLength, 12, 12)
             end
             love.graphics.pop()

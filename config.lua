@@ -7,11 +7,12 @@ config.SPEED_TIERS = {
     {name = 'superfast', value = 600, color = {1, 0.2, 0.2}, accel = 800, friction = 400, punch = 3.2}
 }
 
+-- enemy tier colours 
 config.ENEMY_SPEED_TIERS = {
-    {name = 'slowed', value = 60, color = {0.5, 1, 0.5}},
-    {name = 'normal', value = 120, color = {1, 1, 1}},
-    {name = 'fast', value = 200, color = {0.2, 0.8, 1}},
-    {name = 'superfast', value = 320, color = {1, 0.2, 1}}
+    {name = 'slowed',    value = 60,  color = config.SPEED_TIERS[1].color},
+    {name = 'normal',    value = 120, color = config.SPEED_TIERS[2].color},
+    {name = 'fast',      value = 200, color = config.SPEED_TIERS[3].color},
+    {name = 'superfast', value = 320, color = config.SPEED_TIERS[4].color}
 }
 
 -- Charge durations for player

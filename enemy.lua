@@ -174,7 +174,6 @@ function enemy.drawAll()
     for i, e in ipairs(enemy.enemies) do
         if e.defeated then goto continue_draw_enemy end
 
-        --Enemy outline is affected by current speed
         love.graphics.setColor(e.speedTier and e.speedTier.color or {1,1,1})
         local half = e.size / 2
         love.graphics.setLineWidth(6)
@@ -184,7 +183,8 @@ function enemy.drawAll()
             e.x + half, e.y + e.size, 
             e.x, e.y + half 
         )
-        love.graphics.setColor(0, 0.7, 1)
+        local c = e.speedTier and e.speedTier.color or {1,1,1}
+        love.graphics.setColor(c[1], c[2], c[3])
         love.graphics.polygon('fill',
             e.x + half, e.y,
             e.x + e.size, e.y + half,
