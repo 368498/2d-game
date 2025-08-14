@@ -139,10 +139,19 @@ local function drawSelfChargeVFX()
     end
 end
 
+-- Controls hint init
+local controlsHintTimer = 0
+local controlsHintText = nil
+local controlsHintFont = nil
+
 function love.load()
     player.load()
     map.init(30, 22, config.TILE_SIZE)
     enemy.initAll(map)
+    -- controls hint setup
+    controlsHintTimer = 10
+    controlsHintText = "Move: WASD  |  Aim: Arrows or Mouse  |  Take: Space or Left Click  |  Give: Z or Right Click"
+    controlsHintFont = love.graphics.newFont(16)
 end
 
 function love.update(dt)
@@ -152,6 +161,11 @@ function love.update(dt)
     handlePlayerEnemyCollision()
     updateAltAttack(dt)
     updateSelfCharge(dt)
+    -- Controls hint time
+    if controlsHintTimer and controlsHintTimer > 0 then
+        controlsHintTimer = controlsHintTimer - dt
+        if controlsHintTimer < 0 then controlsHintTimer = 0 end
+    end
 end
 
 function love.keypressed(key)
@@ -181,4 +195,22 @@ function love.draw()
     drawHitFlash()
     drawSelfChargeVFX()
     ui.draw(player, enemy)
+    -- Draw controls hint overlay last
+    if controlsHintTimer and controlsHintTimer > 0 and controlsHintText then
+        local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+        local prevFont = love.graphics.getFont()
+        if controlsHintFont then love.graphics.setFont(controlsHintFont) end
+        local text = controlsHintText
+        local tw = love.graphics.getFont():getWidth(text)
+        local th = love.graphics.getFont():getHeight()
+        local x = (w - tw) / 2
+        local y = 42
+        --shadow
+        love.graphics.setColor(0, 0, 0, 0.7)
+        love.graphics.print(text, x + 2, y + 2)
+        -- text
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.print(text, x, y)
+        if prevFont then love.graphics.setFont(prevFont) end
+    end
 end

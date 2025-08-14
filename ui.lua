@@ -14,7 +14,6 @@ function ui.draw(player, enemy)
     local pipSpacing = config.UI_PIP_SPACING
     love.graphics.setFont(love.graphics.newFont(config.UI_FONT_SIZE))
     love.graphics.setColor(1, 1, 1, 0.8)
-    love.graphics.print("SPEED", meterX, meterY - 22)
     for i, tier in ipairs(SPEED_TIERS) do
         local x = meterX + (i-1) * pipSpacing
         local y = meterY
@@ -75,21 +74,7 @@ function ui.draw(player, enemy)
         end
         love.graphics.setColor(1, 1, 1, 1)
     end
-    -- Debugging output
-    love.graphics.setColor(1, 1, 1, 0.8)
-    local debugY = config.UI_DEBUG_Y_START
-    love.graphics.print(string.format("Player: tier=%s, speed=%.1f, vx=%.1f, vy=%.1f, target=%.1f",
-        player.speedTier and player.speedTier.name or '?', player.speed or 0, player.vx or 0, player.vy or 0, player.targetSpeed or 0), 8, debugY)
-    debugY = debugY + config.UI_DEBUG_Y_STEP
-    for i, e in ipairs(enemy.getAll()) do
-        love.graphics.print(string.format("Enemy %d: tier=%s, speed=%.1f, vx=%.1f, vy=%.1f, target=%.1f",
-            i,
-            e.speedTier and e.speedTier.name or '?',
-            math.abs(e.vx or 0), e.vx or 0, e.vy or 0, e.targetSpeed or 0),
-            8, debugY)
-        debugY = debugY + config.UI_DEBUG_Y_STEP
-    end
-    love.graphics.setColor(1, 1, 1, 1)
+    -- Debug render removed
 end
 
 return ui 
