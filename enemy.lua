@@ -56,10 +56,10 @@ function enemy.initAll(map, player)
     }
 end
 
-function moveFollower(dt, map, tilemap, enemy)
+function enemy.moveFollower(dt, map, tilemap, e)
     -- follower enemy movement
-    local dx = enemy.player.x - enemy.x
-    local dy = enemy.player.y - enemy.y
+    local dx = e.player.x - e.x
+    local dy = e.player.y - e.y
     local dist = math.sqrt(dx * dx + dy * dy)
 
     if dist > 1 then
@@ -67,48 +67,126 @@ function moveFollower(dt, map, tilemap, enemy)
         local dirX = dx / dist
         local dirY = dy / dist
 
-        local speed = enemy.speed or 100
-        enemy.vx = dirX * speed
-        enemy.vy = dirY * speed
+        local speed = e.speed or 100
+        e.vx = dirX * speed
+        e.vy = dirY * speed
 
-        enemy.x = enemy.x + enemy.vx * dt
-        enemy.y = enemy.y + enemy.vy * dt
+        e.x = e.x + e.vx * dt
+        e.y = e.y + e.vy * dt
     else
         --at target
-        enemy.vx, enemy.vy = 0, 0
+        e.vx, e.vy = 0, 0
     end
 end
 
 
-function moveBouncer(dt, map, tilemap, enemy)
+function enemy.moveBouncer(dt, map, tilemap, e)
     -- Bouncer enemy movement
-    if enemy.targetVx then
-        if math.abs(enemy.vx - enemy.targetVx) < 1 then
-            enemy.vx = enemy.targetVx
-            enemy.targetVx = nil
+    if e.targetVx then
+        if math.abs(e.vx - e.targetVx) < 1 then
+            e.vx = e.targetVx
+            e.targetVx = nil
         else
-            enemy.vx = enemy.vx + utils.sign(enemy.targetVx - enemy.vx) * 200 * dt
+            e.vx = e.vx + utils.sign(e.targetVx - e.vx) * 200 * dt
         end
     end
-    if enemy.targetVy then
-        if math.abs(enemy.vy - enemy.targetVy) < 1 then
-            enemy.vy = enemy.targetVy
-            enemy.targetVy = nil
+    if e.targetVy then
+        if math.abs(e.vy - e.targetVy) < 1 then
+            e.vy = e.targetVy
+            e.targetVy = nil
         else
-            enemy.vy = enemy.vy + utils.sign(enemy.targetVy - enemy.vy) * 200 * dt
+            e.vy = e.vy + utils.sign(e.targetVy - e.vy) * 200 * dt
         end
     end
-    enemy.x = enemy.x + enemy.vx * dt
-    enemy.y = enemy.y + (enemy.vy or 0) * dt
-    if enemy.x < enemy.minX then
-        enemy.x = enemy.minX
-        enemy.vx = -enemy.vx
-    elseif enemy.x > enemy.maxX then
-        enemy.x = enemy.maxX
-        enemy.vx = -enemy.vx
+    e.x = e.x + e.vx * dt
+    e.y = e.y + (e.vy or 0) * dt
+    if e.x < e.minX then
+        e.x = e.minX
+        e.vx = -e.vx
+    elseif e.x > e.maxX then
+        e.x = e.maxX
+        e.vx = -e.vx
     end
-    if enemy.y < 0 then enemy.y = 0; enemy.vy = -enemy.vy end
-    if enemy.y > 720 - enemy.size then enemy.y = 720 - enemy.size; enemy.vy = -enemy.vy end
+    if e.y < 0 then e.y = 0; e.vy = -e.vy end
+    if e.y > 720 - e.size then e.y = 720 - e.size; e.vy = -e.vy end
+end
+
+function enemy.updateKnockback(e, dt, map, tilemap)
+    -- Knocked Back Enemy Movement
+    local nextX = e.x + e.knockbackVx * dt
+    local nextY = e.y + e.knockbackVy * dt
+    local es = e.size
+    local hitWall = false
+
+    for _, corner in ipairs({
+        {nextX, nextY},
+        {nextX + es - 1, nextY},
+        {nextX, nextY + es - 1},
+        {nextX + es - 1, nextY + es - 1}
+    }) do
+        local tileX = math.floor(corner[1] / map.tileSize) + 1
+        local tileY = math.floor(corner[2] / map.tileSize) + 1
+        if tileX < 1 or tileX > map.width or tileY < 1 or tileY > map.height then
+            hitWall = true
+            break
+        end
+        if tilemap[tileY] and tilemap[tileY][tileX] == 1 then
+            hitWall = true
+            break
+        end
+    end
+
+    -- Defeat by hitting wall in knockback state
+    if hitWall then
+        e.defeated = true
+        e.defeatEffectTimer = 0.28
+        return
+    end
+
+    -- Defeat by hitting another enemy in knockback state
+    for j, other in ipairs(enemy.enemies) do
+        if other ~= e and not other.defeated then
+            local overlap = not (nextX + es < other.x or nextX > other.x + other.size or nextY + es < other.y or nextY > other.y + other.size)
+            if overlap then
+                other.defeated = true
+                other.defeatEffectTimer = 0.28
+            end
+        end
+    end
+
+    e.x = nextX
+    e.y = nextY
+    e.knockbackTimer = e.knockbackTimer - dt
+
+    if e.knockbackTimer <= 0 then
+        local dir = (e.knockbackVx >= 0) and 1 or -1
+        e.knockbackVx = 0
+        e.knockbackVy = 0
+        e.knockbackTimer = 0
+        e.vx = 0
+        e.vy = 0
+        e.recoveryTimer = 0.15
+        e._recoveryElapsed = 0
+        e._recoveryTargetVx = dir * (e.speedTier and e.speedTier.value or 120)
+    end
+end
+
+function enemy.updateRecovery(e, dt)
+     -- Enemy attack recovery window
+    local total = 0.15
+    local elapsed = (e._recoveryElapsed or 0) + dt
+    e._recoveryElapsed = elapsed
+    local t = math.min(1, elapsed / total)
+    e.vx = (e._recoveryTargetVx or 0) * t
+    e.vy = 0
+    e.recoveryTimer = e.recoveryTimer - dt
+
+    if e.recoveryTimer <= 0 then
+        e.vx = e._recoveryTargetVx or 0
+        e.vy = 0
+        e._recoveryElapsed = nil
+        e._recoveryTargetVx = nil
+    end
 end
 
 function enemy.updateAll(dt, map, tilemap)
@@ -117,87 +195,15 @@ function enemy.updateAll(dt, map, tilemap)
         if e.defeated then goto continue_enemy end
         
         if e.knockbackTimer and e.knockbackTimer > 0 then
-            -- Knocked Back Enemy Movement
-            local nextX = e.x + e.knockbackVx * dt
-            local nextY = e.y + e.knockbackVy * dt
-            local es = e.size
-            local hitWall = false
-
-            for _, corner in ipairs({
-                {nextX, nextY},
-                {nextX + es - 1, nextY},
-                {nextX, nextY + es - 1},
-                {nextX + es - 1, nextY + es - 1}
-            }) do
-                local tileX = math.floor(corner[1] / map.tileSize) + 1
-                local tileY = math.floor(corner[2] / map.tileSize) + 1
-                if tileX < 1 or tileX > map.width or tileY < 1 or tileY > map.height then
-                    hitWall = true
-                    break
-                end
-                if tilemap[tileY] and tilemap[tileY][tileX] == 1 then
-                    hitWall = true
-                    break
-                end
-            end
-
-            -- Defeat by hitting wall in knockback state
-            if hitWall then
-                e.defeated = true
-                e.defeatEffectTimer = 0.28
-                goto continue_enemy
-            end
-
-            -- Defeat by hitting another enemy in knockback state
-            for j, other in ipairs(enemy.enemies) do
-                if other ~= e and not other.defeated then
-                    local overlap = not (nextX + es < other.x or nextX > other.x + other.size or nextY + es < other.y or nextY > other.y + other.size)
-                    if overlap then
-                        other.defeated = true
-                        other.defeatEffectTimer = 0.28
-                    end
-                end
-            end
-
-            e.x = nextX
-            e.y = nextY
-            e.knockbackTimer = e.knockbackTimer - dt
-
-            if e.knockbackTimer <= 0 then
-                e.knockbackVx = 0
-                e.knockbackVy = 0
-                e.knockbackTimer = 0
-                e.vx = 0
-                e.vy = 0
-                e.recoveryTimer = 0.15
-                e._recoveryElapsed = 0
-                local dir = (e.vx >= 0) and 1 or -1
-                e._recoveryTargetVx = dir * (e.speedTier and e.speedTier.value or 120)
-            end
-
+            enemy.updateKnockback(e, dt, map, tilemap)
         elseif e.recoveryTimer and e.recoveryTimer > 0 then
-            -- Enemy attack recovery window
-            local total = 0.15
-            local elapsed = (e._recoveryElapsed or 0) + dt
-            e._recoveryElapsed = elapsed
-            local t = math.min(1, elapsed / total)
-            e.vx = (e._recoveryTargetVx or 0) * t
-            e.vy = 0
-            e.recoveryTimer = e.recoveryTimer - dt
-
-            if e.recoveryTimer <= 0 then
-                e.vx = e._recoveryTargetVx or 0
-                e.vy = 0
-                e._recoveryElapsed = nil
-                e._recoveryTargetVx = nil
-            end
-
+            enemy.updateRecovery(e, dt)
         else
             if e.type == 'bouncer' then
                 -- Normal enemy movement
-                moveBouncer(dt, map, tilemap, e)
+                enemy.moveBouncer(dt, map, tilemap, e)
             else
-                moveFollower(dt, map, tilemap, e)
+                enemy.moveFollower(dt, map, tilemap, e)
             end
         end
         ::continue_enemy::
@@ -260,4 +266,4 @@ function enemy.getAll()
     return enemy.enemies
 end
 
-return enemy 
+return enemy
