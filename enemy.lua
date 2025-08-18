@@ -5,17 +5,19 @@ local enemy = {}
 
 enemy.enemies = {}
 
-function enemy.initAll(map)
+function enemy.initAll(map, player)
     local enemyStartTier = config.ENEMY_SPEED_TIERS[2] 
     enemy.enemies = {
         {
             x = 2 * config.TILE_SIZE, y = 2 * config.TILE_SIZE,
+            type = 'bouncer',
             size = config.PLAYER_SIZE,
             vx = enemyStartTier.value,
             vy = 0,
             minX = 2 * config.TILE_SIZE,
             maxX = 27 * config.TILE_SIZE,
             speed = enemyStartTier.value,
+            player = player,
             targetSpeed = enemyStartTier.value,
             speedTier = enemyStartTier,
             knockbackTimer = 0, knockbackVx = 0, knockbackVy = 0, recoveryTimer = 0,
@@ -23,12 +25,14 @@ function enemy.initAll(map)
         },
         {
             x = 25 * config.TILE_SIZE, y = 15 * config.TILE_SIZE,
+            type = 'bouncer',
             size = config.PLAYER_SIZE,
             vx = -enemyStartTier.value,
             vy = 0,
             minX = 2 * config.TILE_SIZE,
             maxX = 27 * config.TILE_SIZE,
             speed = enemyStartTier.value,
+            player = player,
             targetSpeed = enemyStartTier.value,
             speedTier = enemyStartTier,
             knockbackTimer = 0, knockbackVx = 0, knockbackVy = 0, recoveryTimer = 0,
@@ -36,18 +40,75 @@ function enemy.initAll(map)
         },
         {
             x = 15 * config.TILE_SIZE, y = 10 * config.TILE_SIZE,
+            type = 'follower',
             size = config.PLAYER_SIZE,
             vx = enemyStartTier.value,
             vy = 0,
             minX = 2 * config.TILE_SIZE,
             maxX = 27 * config.TILE_SIZE,
             speed = enemyStartTier.value,
+            player = player,
             targetSpeed = enemyStartTier.value,
             speedTier = enemyStartTier,
             knockbackTimer = 0, knockbackVx = 0, knockbackVy = 0, recoveryTimer = 0,
             defeated = false, defeatEffectTimer = 0
         }
     }
+end
+
+function moveFollower(dt, map, tilemap, enemy)
+    -- follower enemy movement
+    local dx = enemy.player.x - enemy.x
+    local dy = enemy.player.y - enemy.y
+    local dist = math.sqrt(dx * dx + dy * dy)
+
+    if dist > 1 then
+        -- Normalise direction
+        local dirX = dx / dist
+        local dirY = dy / dist
+
+        local speed = enemy.speed or 100
+        enemy.vx = dirX * speed
+        enemy.vy = dirY * speed
+
+        enemy.x = enemy.x + enemy.vx * dt
+        enemy.y = enemy.y + enemy.vy * dt
+    else
+        --at target
+        enemy.vx, enemy.vy = 0, 0
+    end
+end
+
+
+function moveBouncer(dt, map, tilemap, enemy)
+    -- Bouncer enemy movement
+    if enemy.targetVx then
+        if math.abs(enemy.vx - enemy.targetVx) < 1 then
+            enemy.vx = enemy.targetVx
+            enemy.targetVx = nil
+        else
+            enemy.vx = enemy.vx + utils.sign(enemy.targetVx - enemy.vx) * 200 * dt
+        end
+    end
+    if enemy.targetVy then
+        if math.abs(enemy.vy - enemy.targetVy) < 1 then
+            enemy.vy = enemy.targetVy
+            enemy.targetVy = nil
+        else
+            enemy.vy = enemy.vy + utils.sign(enemy.targetVy - enemy.vy) * 200 * dt
+        end
+    end
+    enemy.x = enemy.x + enemy.vx * dt
+    enemy.y = enemy.y + (enemy.vy or 0) * dt
+    if enemy.x < enemy.minX then
+        enemy.x = enemy.minX
+        enemy.vx = -enemy.vx
+    elseif enemy.x > enemy.maxX then
+        enemy.x = enemy.maxX
+        enemy.vx = -enemy.vx
+    end
+    if enemy.y < 0 then enemy.y = 0; enemy.vy = -enemy.vy end
+    if enemy.y > 720 - enemy.size then enemy.y = 720 - enemy.size; enemy.vy = -enemy.vy end
 end
 
 function enemy.updateAll(dt, map, tilemap)
@@ -132,34 +193,12 @@ function enemy.updateAll(dt, map, tilemap)
             end
 
         else
-            -- Normal enemy movement
-            if e.targetVx then
-                if math.abs(e.vx - e.targetVx) < 1 then
-                    e.vx = e.targetVx
-                    e.targetVx = nil
-                else
-                    e.vx = e.vx + utils.sign(e.targetVx - e.vx) * 200 * dt
-                end
+            if e.type == 'bouncer' then
+                -- Normal enemy movement
+                moveBouncer(dt, map, tilemap, e)
+            else
+                moveFollower(dt, map, tilemap, e)
             end
-            if e.targetVy then
-                if math.abs(e.vy - e.targetVy) < 1 then
-                    e.vy = e.targetVy
-                    e.targetVy = nil
-                else
-                    e.vy = e.vy + utils.sign(e.targetVy - e.vy) * 200 * dt
-                end
-            end
-            e.x = e.x + e.vx * dt
-            e.y = e.y + (e.vy or 0) * dt
-            if e.x < e.minX then
-                e.x = e.minX
-                e.vx = -e.vx
-            elseif e.x > e.maxX then
-                e.x = e.maxX
-                e.vx = -e.vx
-            end
-            if e.y < 0 then e.y = 0; e.vy = -e.vy end
-            if e.y > 720 - e.size then e.y = 720 - e.size; e.vy = -e.vy end
         end
         ::continue_enemy::
     end

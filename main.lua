@@ -147,7 +147,7 @@ local controlsHintFont = nil
 function love.load()
     player.load()
     map.init(30, 22, config.TILE_SIZE)
-    enemy.initAll(map)
+    enemy.initAll(map, player)
     -- controls hint setup
     controlsHintTimer = 10
     controlsHintText = "Move: WASD  |  Aim: Arrows or Mouse  |  Take: Space or Left Click  |  Give: Z or Right Click"
