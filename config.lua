@@ -45,6 +45,18 @@ config.ENEMY_DEFEAT_VFX_EXPAND = 64
 config.ENEMY_DEFEAT_VFX_OSC = 16
 config.ENEMY_DEFEAT_FLASH_THRESHOLD = 0.12
 
+-- Enemy Spawning Logic
+config.SPAWN = {
+	enabled = true,
+	initialDelay = 2.0,
+	interval = 3.0,
+	intervalMin = 1.0,
+	intervalDecay = 0.02, -- enemy spawn delay reduces over time to increase difficulty
+	maxEnemies = 12,
+	safeRadius = 120, --  not spawn close to player
+	edgeSpawn = true -- whether or not to spawn at arena edges 
+}
+
 -- Player
 config.PLAYER_HIT_FLASH_RADIUS = 24
 config.PLAYER_HIT_FLASH_DURATION = 0.15
