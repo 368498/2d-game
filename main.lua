@@ -150,6 +150,17 @@ local controlsHintTimer = 0
 local controlsHintText = nil
 local controlsHintFont = nil
 local screenShakeTimer = 0
+local gameState = 'playing' -- 'playing' | 'gameover'
+local gameOverTimer = 0
+
+local function resetGame()
+    player.load()
+    enemy.initAll(map, player)
+    controlsHintTimer = 10
+    screenShakeTimer = 0
+    gameState = 'playing'
+    gameOverTimer = 0
+end
 
 function love.load()
     math.randomseed(os.time())
@@ -163,6 +174,15 @@ function love.load()
 end
 
 function love.update(dt)
+    if gameState == 'gameover' then
+        -- minimal timers during game over
+        if screenShakeTimer > 0 then
+            screenShakeTimer = screenShakeTimer - dt
+            if screenShakeTimer < 0 then screenShakeTimer = 0 end
+        end
+        return
+    end
+
     enemy.updateAll(dt, map, map.getTilemap())
     player.update(dt, map, map.getTilemap(), enemy.getAll())
 
@@ -180,14 +200,20 @@ function love.update(dt)
         if screenShakeTimer < 0 then screenShakeTimer = 0 end
     end
 
-    -- #TODO Game Over
-    if player.isDead and player.isDead() then
-        player.load()
-        enemy.initAll(map, player)
+    -- Enter game over state
+    if player.isDead and player.isDead() and gameState ~= 'gameover' then
+        gameState = 'gameover'
+        gameOverTimer = 0
     end
 end
 
 function love.keypressed(key)
+    if gameState == 'gameover' then
+        if key == 'r' or key == 'return' or key == 'space' then
+            resetGame()
+        end
+        return
+    end
     player.keypressed(key)
 end
 
@@ -207,7 +233,7 @@ function love.draw()
     -- background color
     love.graphics.clear(0.09, 0.09, 0.13, 1)
 
-    -- apply simple screen shake via translation
+    --simple screen shake for damage
     local ox, oy = 0, 0
     if screenShakeTimer > 0 then
         local t = screenShakeTimer / (config.SCREEN_SHAKE_DURATION or 0.18)
@@ -227,12 +253,35 @@ function love.draw()
     ui.draw(player, enemy)
     love.graphics.pop()
 
-    -- damage flash overlay
+    -- #TODO damage overlay fix
     if config.ENABLE_DAMAGE_FLASH and player.damageFlashTimer and player.damageFlashTimer > 0 then
         local pct = player.damageFlashTimer / (config.PLAYER_DAMAGE_FLASH_DURATION or 0.25)
         love.graphics.setColor(1, 0, 0, 0.25 * pct)
         love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
         love.graphics.setColor(1, 1, 1, 1)
+    end
+
+    -- Game Over overlay
+    if gameState == 'gameover' then
+        local w, h = love.graphics.getWidth(), love.graphics.getHeight()
+        love.graphics.setColor(0, 0, 0, 0.55)
+        love.graphics.rectangle('fill', 0, 0, w, h)
+
+        local prevFont = love.graphics.getFont()
+        local titleFont = love.graphics.newFont(42)
+        local captionFont = love.graphics.newFont(20)
+        love.graphics.setFont(titleFont)
+        love.graphics.setColor(1, 1, 1, 1)
+        local title = "GAME OVER"
+        local tw = love.graphics.getFont():getWidth(title)
+        local th = love.graphics.getFont():getHeight()
+        love.graphics.print(title, (w - tw) / 2, h * 0.4 - th / 2)
+        love.graphics.setFont(captionFont)
+        local tip = "Press R to restart"
+        local tipw = love.graphics.getFont():getWidth(tip)
+        love.graphics.setColor(1, 1, 1, 0.9)
+        love.graphics.print(tip, (w - tipw) / 2, h * 0.55)
+        if prevFont then love.graphics.setFont(prevFont) end
     end
     -- Draw controls hint overlay last
     if controlsHintTimer and controlsHintTimer > 0 and controlsHintText then

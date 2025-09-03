@@ -377,6 +377,7 @@ function player.takeDamage(amount)
     player.invulnTimer = config.PLAYER_IFRAME_TIME or 0.8
     player.damageFlashTimer = config.PLAYER_DAMAGE_FLASH_DURATION or 0.25
     --  knockback away from impact direction 
+    local knockMagnitude = (config.PLAYER_HIT_KNOCKBACK or 120)
     if player.vx ~= 0 or player.vy ~= 0 then
         local len = math.sqrt(player.vx*player.vx + player.vy*player.vy)
         if len > 0 then
