@@ -279,9 +279,9 @@ function enemy.drawAll()
                 love.graphics.setColor(1, 1, 1, 0.85 * (1-progress/config.ENEMY_DEFEAT_FLASH_THRESHOLD))
                 love.graphics.circle('fill', centerX, centerY, radius * 0.7)
             end
-            love.graphics.setColor(1, 0.2, 0.2, 0.8 * (1-t))
+            love.graphics.setColor(1, 0.2, 0.2, 0.8 * (1 - progress))
             love.graphics.circle('fill', centerX, centerY, radius)
-            love.graphics.setColor(1, 1, 1, 0.7 * (1-t))
+            love.graphics.setColor(1, 1, 1, 0.7 * (1 - progress))
             love.graphics.circle('line', centerX, centerY, radius + 4)
             love.graphics.setColor(1, 1, 1, 1)
         end

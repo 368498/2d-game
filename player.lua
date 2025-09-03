@@ -34,6 +34,7 @@ function player.load()
     player.maxHealth = config.PLAYER_MAX_HEALTH or 5
     player.health = player.maxHealth
     player.invulnTimer = 0
+    player.damageFlashTimer = 0
 end
 
 function player.update(dt, map, tilemap, enemies)
@@ -41,6 +42,10 @@ function player.update(dt, map, tilemap, enemies)
     if player.invulnTimer and player.invulnTimer > 0 then
         player.invulnTimer = player.invulnTimer - dt
         if player.invulnTimer < 0 then player.invulnTimer = 0 end
+    end
+    if player.damageFlashTimer and player.damageFlashTimer > 0 then
+        player.damageFlashTimer = player.damageFlashTimer - dt
+        if player.damageFlashTimer < 0 then player.damageFlashTimer = 0 end
     end
     -- Control feel settings
     local baseSpeed = 100
@@ -370,7 +375,18 @@ function player.takeDamage(amount)
     if player.invulnTimer and player.invulnTimer > 0 then return end
     player.health = math.max(0, (player.health or player.maxHealth) - (amount or 1))
     player.invulnTimer = config.PLAYER_IFRAME_TIME or 0.8
-    -- #TODO small knock or feedback?
+    player.damageFlashTimer = config.PLAYER_DAMAGE_FLASH_DURATION or 0.25
+    --  knockback away from impact direction 
+    if player.vx ~= 0 or player.vy ~= 0 then
+        local len = math.sqrt(player.vx*player.vx + player.vy*player.vy)
+        if len > 0 then
+            player.vx = -player.vx / len * knockMagnitude
+            player.vy = -player.vy / len * knockMagnitude
+        end
+    end
+    if love and love.audio and love.audio.newSource then
+        -- #TODO assets added later
+    end
 end
 
 function player.isDead()
@@ -378,7 +394,16 @@ function player.isDead()
 end
 
 function player.draw()
-    love.graphics.setColor(player.speedTier and player.speedTier.color or {1,1,1})
+    local blink = false
+    if (player.invulnTimer or 0) > 0 then
+        local t = love.timer.getTime()
+        blink = (math.floor(t * 20) % 2) == 0
+    end
+    if blink then
+        love.graphics.setColor(1, 1, 1, 0.35)
+    else
+        love.graphics.setColor(player.speedTier and player.speedTier.color or {1,1,1})
+    end
     local px, py, ps = player.x, player.y, player.size
     local cx, cy = px + ps / 2, py + ps / 2
     local angle = player.angle or 0
