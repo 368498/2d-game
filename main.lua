@@ -51,6 +51,7 @@ local function handlePlayerEnemyCollision()
             -- Apply damage if not iframes
             if (player.invulnTimer or 0) <= 0 then
                 if player.takeDamage then player.takeDamage(1) end
+                screenShakeTimer = (config.SCREEN_SHAKE_DURATION or 0.18)
             end
         end
     end
@@ -148,6 +149,7 @@ end
 local controlsHintTimer = 0
 local controlsHintText = nil
 local controlsHintFont = nil
+local screenShakeTimer = 0
 
 function love.load()
     math.randomseed(os.time())
@@ -171,6 +173,11 @@ function love.update(dt)
     if controlsHintTimer and controlsHintTimer > 0 then
         controlsHintTimer = controlsHintTimer - dt
         if controlsHintTimer < 0 then controlsHintTimer = 0 end
+    end
+
+    if screenShakeTimer > 0 then
+        screenShakeTimer = screenShakeTimer - dt
+        if screenShakeTimer < 0 then screenShakeTimer = 0 end
     end
 
     -- #TODO Game Over
@@ -198,7 +205,18 @@ end
 
 function love.draw()
     -- background color
-    love.graphics.clear(0.09, 0.09, 0.13, 1) 
+    love.graphics.clear(0.09, 0.09, 0.13, 1)
+
+    -- apply simple screen shake via translation
+    local ox, oy = 0, 0
+    if screenShakeTimer > 0 then
+        local t = screenShakeTimer / (config.SCREEN_SHAKE_DURATION or 0.18)
+        local amp = (config.SCREEN_SHAKE_AMPLITUDE or 6) * t
+        ox = (math.random() * 2 - 1) * amp
+        oy = (math.random() * 2 - 1) * amp
+    end
+    love.graphics.push()
+    love.graphics.translate(ox, oy)
 
     drawTilemap()
     love.graphics.setColor(1, 1, 1, 1)
@@ -207,6 +225,15 @@ function love.draw()
     drawHitFlash()
     drawSelfChargeVFX()
     ui.draw(player, enemy)
+    love.graphics.pop()
+
+    -- damage flash overlay
+    if config.ENABLE_DAMAGE_FLASH and player.damageFlashTimer and player.damageFlashTimer > 0 then
+        local pct = player.damageFlashTimer / (config.PLAYER_DAMAGE_FLASH_DURATION or 0.25)
+        love.graphics.setColor(1, 0, 0, 0.25 * pct)
+        love.graphics.rectangle('fill', 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+        love.graphics.setColor(1, 1, 1, 1)
+    end
     -- Draw controls hint overlay last
     if controlsHintTimer and controlsHintTimer > 0 and controlsHintText then
         local w, h = love.graphics.getWidth(), love.graphics.getHeight()
