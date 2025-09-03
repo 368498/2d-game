@@ -145,6 +145,7 @@ local controlsHintText = nil
 local controlsHintFont = nil
 
 function love.load()
+    math.randomseed(os.time())
     player.load()
     map.init(30, 22, config.TILE_SIZE)
     enemy.initAll(map, player)

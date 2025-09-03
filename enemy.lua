@@ -364,6 +364,7 @@ function enemy.trySpawn(map, tilemap)
 	local px = playerRef.x + size/2
 	local py = playerRef.y + size/2
 
+	local valid = {}
 	for _, pos in ipairs(candidates) do
 		local x, y = pos[1], pos[2]
 		local candidateCenterX = x + size/2
@@ -372,10 +373,16 @@ function enemy.trySpawn(map, tilemap)
 		local deltaY = candidateCenterY - py
 		local distanceSquared = deltaX*deltaX + deltaY*deltaY
 		if distanceSquared >= safeR*safeR and isAreaFree(tilemap, map, x, y, size) then
-			enemy.spawnOne(x, y, playerRef)
-			return
+			table.insert(valid, {x, y})
 		end
 	end
+
+	if #valid > 0 then
+		local idx = math.random(1, #valid)
+		local pos = valid[idx]
+		enemy.spawnOne(pos[1], pos[2], playerRef)
+	end
+    
 end
 
 function enemy.spawnOne(x, y, player)

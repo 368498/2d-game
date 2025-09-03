@@ -53,7 +53,7 @@ config.SPAWN = {
 	intervalMin = 1.0,
 	intervalDecay = 0.02, -- enemy spawn delay reduces over time to increase difficulty
 	maxEnemies = 12,
-	safeRadius = 120, --  not spawn close to player
+	safeRadius = 70, --  not spawn close to player
 	edgeSpawn = true -- whether or not to spawn at arena edges 
 }
 
