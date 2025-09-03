@@ -47,6 +47,11 @@ local function handlePlayerEnemyCollision()
             else
                 player.vy = 0
             end
+
+            -- Apply damage if not iframes
+            if (player.invulnTimer or 0) <= 0 then
+                if player.takeDamage then player.takeDamage(1) end
+            end
         end
     end
 end
@@ -166,6 +171,12 @@ function love.update(dt)
     if controlsHintTimer and controlsHintTimer > 0 then
         controlsHintTimer = controlsHintTimer - dt
         if controlsHintTimer < 0 then controlsHintTimer = 0 end
+    end
+
+    -- #TODO Game Over
+    if player.isDead and player.isDead() then
+        player.load()
+        enemy.initAll(map, player)
     end
 end
 

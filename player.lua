@@ -29,9 +29,19 @@ function player.load()
     player.selfChargeTimer = 0
     player.selfChargeCooldown = 0
     player.selfChargeReady = true
+
+    -- HPs
+    player.maxHealth = config.PLAYER_MAX_HEALTH or 5
+    player.health = player.maxHealth
+    player.invulnTimer = 0
 end
 
 function player.update(dt, map, tilemap, enemies)
+    -- iFrame timer
+    if player.invulnTimer and player.invulnTimer > 0 then
+        player.invulnTimer = player.invulnTimer - dt
+        if player.invulnTimer < 0 then player.invulnTimer = 0 end
+    end
     -- Control feel settings
     local baseSpeed = 100
     local accelScale = player.speed / baseSpeed
@@ -354,6 +364,17 @@ function player.update(dt, map, tilemap, enemies)
             player.hitFlash.active = false
         end
     end
+end
+
+function player.takeDamage(amount)
+    if player.invulnTimer and player.invulnTimer > 0 then return end
+    player.health = math.max(0, (player.health or player.maxHealth) - (amount or 1))
+    player.invulnTimer = config.PLAYER_IFRAME_TIME or 0.8
+    -- #TODO small knock or feedback?
+end
+
+function player.isDead()
+    return (player.health or 0) <= 0
 end
 
 function player.draw()

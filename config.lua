@@ -61,6 +61,10 @@ config.SPAWN = {
 config.PLAYER_HIT_FLASH_RADIUS = 24
 config.PLAYER_HIT_FLASH_DURATION = 0.15
 
+-- Player HP
+config.PLAYER_MAX_HEALTH = 5
+config.PLAYER_IFRAME_TIME = 0.8
+
 -- UI Elements
 config.UI_METER_X = 32
 config.UI_METER_Y = 24

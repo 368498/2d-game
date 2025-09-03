@@ -32,6 +32,22 @@ function ui.draw(player, enemy)
         love.graphics.circle('fill', x, y, pipSize/2 - 3)
     end
     love.graphics.setColor(1, 1, 1, 1)
+    
+    -- #TODO HP hearts
+    local heartsX, heartsY = meterX, meterY + 28
+    local hp = player.health or 0
+    local maxHp = player.maxHealth or hp
+    for i = 1, maxHp do
+        local x = heartsX + (i-1) * (pipSpacing * 0.65)
+        local y = heartsY
+        if i <= hp then
+            love.graphics.setColor(1, 0.3, 0.3, 1)
+        else
+            love.graphics.setColor(0.3, 0.15, 0.15, 0.6)
+        end
+        love.graphics.circle('fill', x, y, 7)
+    end
+    love.graphics.setColor(1, 1, 1, 1)
     -- Draw cooldown indicators for both attacks
     local px, py, ps = player.x, player.y, player.size
     local cx, cy = px + ps / 2, py + ps + 6
